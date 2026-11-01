@@ -89,7 +89,7 @@ class RuntimeDescriptor:
             instance_id=str(uuid4()), pid=os.getpid(), mode=mode,
             device_id=device_id, workspace=str(workspace),
             started_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-            version=version("chat2local"),
+            version=version("chat2local-plus"),
             control={"transport": "tcp", "host": "127.0.0.1", "port": port},
         )
 

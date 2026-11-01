@@ -22,6 +22,8 @@ def create_mcp_server(router: DeviceRouter | None = None, *, auth: AuthConfig | 
         }
     server = MCPServer("Chat2Local", instructions=MCP_INSTRUCTIONS, **options)
     register_tools(server, router)
+    from chat2local.mcp import file_tools
+    file_tools.register(server, router)
     return server
 
 

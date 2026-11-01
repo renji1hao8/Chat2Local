@@ -1,3 +1,5 @@
+> **Chat2Local Plus 0.3.0.post1:** This branch includes six additional file tools and is based on upstream master 852be7d. See the [Plus README](README.md) for installation and limitations. The upstream image-preview contribution is [PR #1](https://github.com/mmc-cloud/Chat2Local/pull/1).
+
 <h1 align="center">Chat2Local</h1>
 
 <p align="center">

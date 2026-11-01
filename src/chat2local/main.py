@@ -302,6 +302,15 @@ def main() -> None:
     workspace_manager = configure_workspace(workspace_manager.root, allowed_roots=allowed_roots)
     configure_config(config)
 
+    from chat2local.files.config import load_file_config, FileConfigError
+    from chat2local.files.service import configure_file_service
+    try:
+        file_config = load_file_config()
+    except FileConfigError as error:
+        parser.error(str(error))
+    advertised_host = "127.0.0.1" if host in ("", "0.0.0.0", "::", "[::]") else host
+    configure_file_service(device_id=device_id, base_url=f"http://{advertised_host}:{port}", config=file_config)
+
     command = _startup_command(args, config, workspace_manager.root, config_path, allowed_roots, token)
 
     try:

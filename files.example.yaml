@@ -1,0 +1,23 @@
+enabled: true
+allow_overwrite: false
+allow_source_url: true
+allow_insecure_source_url: false
+allow_private_source_hosts: false
+max_inline_bytes: 524288
+chunk_size: 262144
+max_chunk_bytes: 1048576
+max_preview_bytes: 4194304
+document_preview_enabled: true
+max_document_bytes: 33554432
+max_preview_pages: 3
+preview_timeout: 20
+download_token_ttl: 900
+download_token_single_use: true
+# Set this only when /files is routed to the same target device.
+# download_base_url: https://files.example.com/device-a
+deny_globs: ["**/.git/**", "**/.ssh/**"]
+# Optional absolute converter paths; otherwise use PATH.
+# soffice_path: C:/Program Files/LibreOffice/program/soffice.exe
+# pdftoppm_path: C:/Tools/poppler/Library/bin/pdftoppm.exe
+# pdftotext_path: C:/Tools/poppler/Library/bin/pdftotext.exe
+# pdfinfo_path: C:/Tools/poppler/Library/bin/pdfinfo.exe

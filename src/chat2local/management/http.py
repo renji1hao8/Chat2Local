@@ -181,7 +181,7 @@ def create_management_app(adapter: CoreAdapter, *, port: int, stop: Callable[[],
     @application.get("/api/session")
     async def session():
         from importlib.metadata import version
-        return {"ok": True, "app": "Chat2Local", "version": version("chat2local"),
+        return {"ok": True, "app": "Chat2Local", "version": version("chat2local-plus"),
                 "backend": "http", "platform": sys.platform, "csrf": csrf}
 
     def candidate(request: ConfigRequest) -> dict:

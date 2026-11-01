@@ -8,6 +8,8 @@ from urllib.parse import urlsplit
 from fastapi import FastAPI, WebSocket
 from mcp.server.transport_security import TransportSecuritySettings
 
+from chat2local.files.http import router as files_router
+from chat2local.files.service import get_file_service
 from chat2local.hub.router import DeviceRouter
 from chat2local.hub.websocket import serve_device
 from chat2local.mcp.server import create_mcp_server
@@ -43,6 +45,7 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
         local_router = router if router is not None else get_router()
+        await get_file_service().startup()
         async with server.session_manager.run():
             try:
                 await local_router.local.browser.start(hub_token=hub_token)
@@ -57,7 +60,8 @@ def create_app(
                     finally:
                         await local_router.local.process_manager.shutdown()
 
-    application = FastAPI(title="Chat2Local", version=version("chat2local"), lifespan=lifespan)
+    application = FastAPI(title="Chat2Local", version=version("chat2local-plus"), lifespan=lifespan)
+    application.include_router(files_router)
     application.state.router = router
     application.state.mcp = server
 

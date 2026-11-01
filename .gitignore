@@ -25,3 +25,9 @@ wheels/
 node_modules/
 .vite/
 *.tsbuildinfo
+# Plus device-local configuration and credentials
+/.chat2local/
+/files.yaml
+/runtime-key.txt
+/tunnel-id.txt
+/*.token

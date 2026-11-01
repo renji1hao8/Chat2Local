@@ -1,317 +1,99 @@
-<h1 align="center">Chat2Local</h1>
+# Chat2Local Plus
 
-<p align="center">
-  <strong>简体中文</strong> ·
-  <a href="https://github.com/mmc-cloud/Chat2Local/blob/master/README.en.md">English</a>
-</p>
+基于 [mmc-cloud/Chat2Local](https://github.com/mmc-cloud/Chat2Local) 0.3.0（含上游 master `852be7d`） 的非官方扩展，提供图片与文档预览、通用文件传输、断点续传及目录打包。原项目由 mmc-cloud 开发，使用 MIT License；本分支保留原版权与许可。
 
-<p align="center">
-  <a href="https://pypi.org/project/chat2local/"><img src="https://img.shields.io/pypi/v/chat2local" alt="PyPI"></a>
-  <a href="https://pypi.org/project/chat2local/"><img src="https://img.shields.io/pypi/pyversions/chat2local" alt="Python"></a>
-  <a href="https://github.com/mmc-cloud/Chat2Local/actions/workflows/test.yml"><img src="https://github.com/mmc-cloud/Chat2Local/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <a href="https://github.com/mmc-cloud/Chat2Local/blob/master/LICENSE"><img src="https://img.shields.io/pypi/l/chat2local" alt="License"></a>
-</p>
+本分支版本为 `0.3.0.post1`，同步至上游 master [`852be7d`](https://github.com/mmc-cloud/Chat2Local/commit/852be7d6d0a1f7864edb906a7484028f52cb6773)。后续上游修复仍需维护者同步。
 
-<p align="center"><strong>让 ChatGPT 通过 MCP 访问并操作你授权的本地电脑和项目。</strong></p>
+2026-11-01，使用者在 ChatGPT 刷新工具列表后完成真实聊天附件导入验收。此项验收确认附件可以传到本地；不代表所有客户端、文件格式和完整实验报告流程均已验证。
 
-Chat2Local 是一个面向单用户、自托管场景的轻量 MCP Agent。它可以读取和修改本地文件、运行命令、管理长时间运行的进程，并通过 **Hub + Agent** 模式连接多台电脑或服务器。
+本版保留上游浏览器能力、本地 Web UI、Handoff 可视化与并发/进程修复，同时保留六个 Plus 文件工具以兼容现有连接。另提供 `file.preview` 能力，作为不扩展上游公共工具数量的小范围贡献。
 
-项目同时提供 **Core / CLI** 和 **Windows Desktop**：前者适合开发者、服务器和命令行环境，后者在同一套 Core 外提供图形化管理、系统托盘、日志和 portable EXE。
+## 支持能力
 
-> **额度变更提醒：** OpenAI 宣布，从 12 月起，Plus、Pro、Business 的 ChatGPT 与 Codex 将共用按 Token 计量的额度。这意味着，此前在 Chat 模式下使用 Sol 高推理时近乎无限的使用体验将受到限制；Instant 聊天不受此次额度计量影响。[查看官方公告](https://help.openai.com/en/articles/20001625-understanding-chatgpt-and-codex-usage-limits)
+原有的文件读取、搜索、patch、命令执行、进程管理、设备选择与 Handoff 工具继续保留。新增六个工具：
 
-## Features
+| 工具 | 功能 |
+|---|---|
+| `import_chat_file` | 通过官方文件参数接收聊天附件，下载到指定设备工作区 |
+| `upload_file` | 文本、base64、HTTPS 来源上传；支持分块续传 |
+| `download_file` | 内联内容、分段读取、短时下载链接 |
+| `preview_file` | 图片与文本预览；PDF、Office 页面图片及所选页面正文 |
+| `transfer_status` | 查看续传位置、会话状态与配额 |
+| `transfer_directory` | 目录清单、ZIP 打包、逐文件解包 |
 
-你可以直接在 ChatGPT 中让它：
+共 18 个 MCP 工具（上游 12 个 + Plus 6 个）。图片支持 PNG、JPEG、GIF、WebP、BMP；SVG 返回文本。PDF 使用 Poppler；DOCX、XLSX、PPTX 使用 LibreOffice 导出 PDF 后渲染。旧版 DOC/XLS/PPT 与 ODF 格式也可交给 LibreOffice，当前实测覆盖 PDF、DOCX、XLSX、PPTX。
 
-- 阅读和搜索本地项目代码，而不需要反复上传文件
-- 修改文件、应用 patch，并继续检查修改结果
-- 运行测试、构建、脚本或其他 Shell 命令
-- 查看长时间运行进程的输出，并继续与进程交互
-- 在多台电脑或服务器之间选择目标设备执行操作
-- 通过 Handoff 保存项目工作线或个人研究、计划和想法，让新的 Chat 继续之前的上下文
-- 通过可选 Chrome 扩展读取和操作网页，支持 DOM 探查、点击、输入和滚动
+## 从源码安装
 
-Chat2Local 主要围绕 **ChatGPT + MCP** 的实际工作流开发和测试。其他支持 MCP 的客户端也可以连接，但目前不是主要测试目标。
-
-## 架构
-
-单设备时，ChatGPT 直接连接 Chat2Local：
-
-```text
-ChatGPT
-   │ MCP / HTTPS
-   ▼
-Chat2Local
-   │
-   └── Local workspace / processes
-```
-
-多设备时，由 Hub 提供统一 MCP endpoint，各 Agent 主动连接 Hub：
-
-```text
-                    ┌── Hub local workspace
-                    │
-ChatGPT ── MCP ──▶ Hub
-                    │
-                    ├── Agent: Windows PC
-                    ├── Agent: Server
-                    └── Agent: Other device
-```
-
-Agent 不对 ChatGPT 暴露 MCP endpoint，也不需要对公网开放入站端口；它只需要能够主动连接 Hub。
-
-## 安装
-
-### Windows Desktop
-
-Windows 用户可以从 [GitHub Releases](https://github.com/mmc-cloud/Chat2Local/releases) 下载：
-
-```text
-Chat2Local-v<version>-windows-x64.zip
-```
-
-解压后直接运行：
-
-```text
-Chat2Local.exe
-```
-
-portable 版本已经包含 Python runtime、Core 和 Desktop GUI，不要求系统预先安装 Python。
-
-### Core / CLI
-
-Core 要求 Python 3.12+。
-
-独立 Core 在 Windows、Linux、macOS 上均自带本地 Web UI。启动后可在浏览器访问
-[http://127.0.0.1:8767/](http://127.0.0.1:8767/)（实际地址也会写入日志），管理配置、日志、设备、Token 和自启。
-Browser Bridge 固定使用用户配置的端口（默认 `8766`）。Web UI 未指定端口时从 `8767` 起最多尝试 10 个端口，
-成功后显示实际地址；通过配置或 CLI 显式指定端口时不自动回退。
-运行时无需 Node.js；详见[本地 Web UI 与跨平台自启](docs/web-ui.md)。原 Windows ZIP / EXE 使用方式保持不变。
-
-推荐使用 `uv tool` 安装到独立环境：
+要求 Python 3.12+。获取 Plus 分支：
 
 ```powershell
-uv tool install chat2local
-chat2local --help
+git clone --branch plus/0.3.0 https://github.com/renji1hao8/Chat2Local.git Chat2Local-Plus
+cd Chat2Local-Plus
 ```
 
-也可以使用 pip：
+进入本仓库目录，使用独立虚拟环境，避免与原版同名的 `chat2local` Python 模块冲突。
 
 ```powershell
-python -m pip install chat2local
-chat2local --help
+py -3.12 -m venv .venv
+.venv/Scripts/python.exe -m pip install -e .
+.venv/Scripts/c2l-plus.exe --workspace C:/Projects/example
 ```
 
-## 快速开始
+Linux/macOS 使用 `python3 -m venv .venv`，随后运行 `.venv/bin/python -m pip install -e .` 和 `.venv/bin/c2l-plus`。已使用 uv 的用户也可以执行 `uv tool install --editable .`。本仓库未提供扩展版桌面 EXE；上游的安装包不包含这些新增工具。
 
-### Standalone
+## 上游新增功能
 
-在希望授权给 Chat2Local 的目录中运行：
+Core 自带本地 Web UI，默认从 `http://127.0.0.1:8767/` 起选择可用端口；实际地址以启动日志为准。可管理配置、设备、日志和 Handoff。浏览器功能需要上游可选 Chrome 扩展，默认不启用浏览器监听；请按上游 [浏览器说明](browser-extension/README.md) 配置，或先查询 `capability_discover` 的可用状态。
+
+通过 `capability_discover` 查询 `file.preview` 并使用 `capability_execute` 可查看工作区图片；详见 [图片预览能力](docs/file-preview.md)。完整 PDF/Office 预览继续使用 Plus 的 `preview_file`。
+
+## 从聊天附件导入模板
+
+`import_chat_file` 声明官方 `_meta["openai/fileParams"]`，由支持此机制的 ChatGPT 客户端提供附件对象。你可以说：“把我上传的模板原件导入工作区的 templates/template.docx，随后运行 MATLAB，并在副本中填写实验结果。”
+
+工具需要 `file` 和明确的目标 `path`，可传 `device`、`workspace`、`sha256`、`overwrite`。`file` 由客户端提供 `download_url` 和 `file_id`，可带 `mime_type`、`file_name`。附件名不会作为落盘路径，原有文件默认不覆盖。目标电脑通过现有 URL 拉取机制下载原始字节，不需要额外的 OpenAI API key，也不需要模型生成 base64。
+
+Core 更新后需要重新加载服务，并在 ChatGPT 中刷新该连接的工具列表。确认“写入操作”出现 **Import chat file**，再新开聊天测试。
+
+建议先说：“将附件原件导入工作区的 templates 文件夹，返回落盘路径、大小和 SHA-256，暂不运行实验或修改模板。”确认文件可读后，再运行 MATLAB，将数据、图片、日志和模板副本保存在同一工作区。
+
+若客户端只传文件 ID、`sandbox:` 路径或未交付有效临时 URL，请重新附加/选择文件；不要编造 URL。链接失效时需要客户端重新提供引用。仅导入文件不等于自动执行 MATLAB 或填写报告，这些是后续操作。
+
+## 文档预览
+
+在运行 Core 的设备安装 LibreOffice 和 Poppler，并让 `soffice`、`pdfinfo`、`pdftoppm`、`pdftotext` 位于 PATH。也可以在 `~/.chat2local/files.yaml` 中配置它们的完整路径。
+
+```json
+{"path":"reports/example.docx","mode":"both","page":1,"page_count":2}
+```
+
+将这些参数交给 `preview_file`：`both` 同时返回页面和正文，`pages` 只返回图片，`text` 只提取正文。默认第一页，每次最多三页；后续页面通过增加 `page` 获取。Excel 页码对应打印分页，PowerPoint 页码对应导出后的幻灯片页面。返回图片会按传输预算缩放。
+
+扫描版 PDF 可显示页面，但没有 OCR。加密文件、缺少转换器、超时或超限时，工具返回具体原因和可用的下载链接。转换在临时目录进行，不改写源文件。Office 布局可能因字体与 LibreOffice 兼容性而不同。
+
+## 配置与访问边界
+
+文件传输配置独立保存在 `~/.chat2local/files.yaml`，完整接口见 [文件传输文档](docs/FILE_TRANSFER.md)。所有文件访问受 workspace、`allowed_roots` 和 `deny_globs` 限制；调用参数只能收紧服务端限额。
+
+默认下载链接指向目标设备本机地址。跨设备使用时，为目标设备设置 `download_base_url`，并让该地址路由到该设备的 `/files`。Hub 不会代理 Agent 的下载链接。链接中的随机 token 是下载凭证，默认 900 秒有效；持有者可下载绑定文件，MCP OAuth 不覆盖该入口。
+
+命令执行与文档转换使用当前 OS 账户权限，不是系统沙箱。LibreOffice 使用独立 profile，禁用宏及加载时的外链刷新；需要强隔离时应使用独立账户或容器。
+
+## 测试
 
 ```powershell
-chat2local
+.venv/Scripts/python.exe -m unittest discover -s tests -p test_regressions.py -v
+.venv/Scripts/python.exe tests/smoke_service.py
+.venv/Scripts/python.exe tests/mcp_e2e.py
+.venv/Scripts/python.exe tests/devices_e2e.py
+.venv/Scripts/python.exe tests/resilience_e2e.py
 ```
 
-也可以显式指定 workspace：
+图像与端到端测试需要 Pillow；开发环境可用 `uv sync --group dev` 按锁文件安装，或使用项目解释器执行 `python -m pip install -e . Pillow`。脚本使用单独分配的临时目录、配置和测试进程。测试结果与真实客户端验证范围见 [验收记录](docs/TEST_RESULTS.md)，本次修复见 [变更记录](CHANGELOG.md)。
 
-```powershell
-chat2local --workspace D:\Projects\example
-```
+## 发布与许可
 
-如果不传 `--workspace`，启动时的当前目录就是默认 workspace。
+发布前使用独立环境构建并检查 wheel；排除 `.venv`、本机配置、凭据、日志和运行状态。保留 LICENSE 和上游来源，使用扩展版自己的包名、安装说明与测试结果。MIT 许可全文见 [LICENSE](LICENSE)。
 
-### Hub + Agent
-
-Hub：
-
-```powershell
-$env:CHAT2LOCAL_HUB_TOKEN = '<shared-secret>'
-chat2local hub --device-id hub --host 127.0.0.1 --port 8765
-```
-
-Agent：
-
-```powershell
-$env:CHAT2LOCAL_HUB_TOKEN = '<shared-secret>'
-chat2local agent --device-id desktop --hub-url wss://hub.example.com/device/ws
-```
-
-Hub 和 Agent 使用同一个 shared token。公网 Agent 应使用 `wss://`。
-
-上面的 Hub 示例只监听 loopback。只有在已经配置防火墙、TLS 反向代理或其他可信网络边界时，
-才应把 Hub 直接监听到 `0.0.0.0`。`CHAT2LOCAL_HUB_TOKEN` 只保护 Hub ↔ Agent 的 `/device/ws`，
-不会保护 MCP `/mcp` endpoint；公网 MCP endpoint 应另外启用 OAuth 或可信的外部访问控制。
-
-### 连接到 ChatGPT
-
-ChatGPT Web 不能直接访问 `localhost` 上的 MCP Server，因此需要为 Chat2Local 提供一条 ChatGPT 可以使用的连接路径。
-
-#### OpenAI Secure MCP Tunnel
-
-对于个人使用、本地开发或不希望把 MCP Server 暴露到公网的场景，可以使用 OpenAI 官方的 [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)。
-
-`tunnel-client` 运行在能够访问 Chat2Local 的机器或网络中，并主动通过 HTTPS 连接 OpenAI。这样 Chat2Local 本身不需要开放公网入站端口，也不需要拥有公开 HTTPS 地址。
-
-典型结构：
-
-```text
-ChatGPT
-   │
-   │ OpenAI Secure MCP Tunnel
-   ▼
-tunnel-client
-   │
-   ▼
-Chat2Local /mcp
-```
-
-在 ChatGPT 中创建自定义 MCP Server / Plugin 时，Connection 选择 **Tunnel**，再选择或填写对应的 `tunnel_id` 即可。
-
-Standalone 模式下，`tunnel-client` 可以直接运行在本机；Hub + Agent 模式下，可以把它运行在 Hub 所在机器或其他能够访问 Hub MCP endpoint 的环境中。
-
-Secure MCP Tunnel 适合私有连接和开发测试；如果准备公开发布 Plugin，则仍需要稳定、可公网访问的 HTTPS MCP endpoint。
-
-#### 公网 HTTPS endpoint
-
-另一种方式是通过反向代理、隧道服务或自己的域名，把 Chat2Local 的 MCP endpoint 暴露为公网 HTTPS 地址，例如：
-
-```text
-https://mcp.example.com/mcp
-```
-
-然后在 ChatGPT 中创建自定义 MCP Server / Plugin，并填写该 Server URL。公网部署建议启用 HTTPS，并配置 OAuth 或其他可信的访问控制。
-
-连接成功后，可以先让 ChatGPT 读取当前 workspace，或者调用 `list_devices` 验证 Chat2Local 是否已经正常连接。
-
-## MCP Tools
-
-Chat2Local 当前公开 12 个 MCP tools，覆盖文件读取与搜索、patch 修改、Shell / Process 操作、多设备选择、Handoff 和可选扩展能力。
-
-`capability_discover` 默认以 summary 查询指定设备的能力概览和实时可用状态；选中能力后用 `detail: "full"` 查询参数 JSON Schema、结果契约和恢复指导，再通过 `capability_execute` 执行。
-浏览器提供 28 个内部能力，包括标签页创建/查询/选择与激活/关闭/移动/固定、普通窗口查询/创建/聚焦/安全关闭、基础导航及状态查询/有限等待、独立授权的标签分组及书签查询与管理，以及网页读取/定位、点击/填写、双击/悬停/聚焦、原生选择/勾选、滚动、合成按键和元素状态等待。
-这些能力均通过已配对的可选 Chrome 扩展执行，网页内容读取与 DOM 操作还需按网站授权。窗口标签概要支持有界分页，续页使用精确窗口和无状态快照标识核验集合/顺序；关闭整个窗口前由上层 Agent 在对话中取得确认，并独立校验完整标签页 ID 集合。基础导航执行前复核目标，只表示已发起，不等待加载。默认不启动浏览器监听；扩展未连接不会影响原有工具。
-Chrome 扩展 ZIP 可从 [GitHub Releases](https://github.com/mmc-cloud/Chat2Local/releases) 下载；安装与配对见 [浏览器扩展说明](browser-extension/README.md)。
-导航等待默认 5 秒、上限 8 秒，Chrome complete 不等于 SPA 业务就绪；旧页面 complete 不会自动作为新导航完成证据。分组功能使用独立可选 tabGroups 权限，只能由用户在扩展设置页点击授权；多步操作部分失败会报告已完成步骤，不自动回滚或重试。
-观察后等待 URL 变化时，使用 `navigation.status` 返回的短期随机 `url_baseline_id`，绑定精确标签和完整 URL，避免脱敏显示 URL 导致误判；独立知道精确 URL 时仍可使用互斥的 `baseline_url`。分组移动会核验实际位置及成员连续性，允许 Chrome 合法调整索引并返回 `actual_index`，未达到位置时不误报成功。
-
-书签采用独立可选授权，支持分页查询、精确字符串 ID 管理，以及完整预览后在对话中确认的递归删除。根/内置/受管理节点受保护；删除前重新核验完整内容和层级快照，失败或结果不确定时不自动重试。
-
-当前公开的 Tool：
-
-```text
-read · search · apply_patch · exec_command · interact_process
-kill_process · list_devices · handoff_list · handoff_get · handoff_save
-```
-
-远程调用可以通过 `device` 指定目标设备；省略时使用当前 MCP Server 所在设备。
-
-普通命令的输出会持续读取到 EOF。显式调用 `kill_process` 或停止 Core 时，在父进程退出、进程树信号处理结束后，最多再等待 1 秒读取输出；后代仍持有继承的 stdout/stderr 管道时，Chat2Local 会关闭本端读端，并用 `output_incomplete: true` 标记已保留的输出。此项清理不会向已经退出的父进程旧 PID 发送信号，但后代继续写入时可能发生写入错误甚至异常退出，不能保证其继续正常运行。需要独立运行的后台程序应在启动时将 stdin、stdout、stderr 重定向到独立文件或 DEVNULL。返回的 `state` / `exit_code` 描述所启动的父进程，`output_incomplete` 描述输出完整性，均不代表后代任务的健康状态。
-
-三个 Handoff Tool 均接受可选的 `scope`：默认 `"workspace"` 按项目工作区保存，兼容旧调用；
-没有具体项目归属的研究、计划或初步想法使用 `"personal"`，无需 Workspace，也不能显式传入
-`workspace`（包括 `null`）。两种作用域允许相同的 Workstream ID，记录彼此独立。
-
-记录均使用 Markdown，保存在选定设备的用户数据目录中：Workspace 使用
-`~/.chat2local/handoffs/<workspace-key>/`，Personal 使用 `~/.chat2local/handoffs/_personal/`。
-现有文件无需迁移，各设备之间不自动同步。先用 `handoff_list` 查看标题和摘要，再按需
-`handoff_get` 读取正文；`handoff_save` 用 `expected_revision=0` 新建，更新使用最新 revision。
-
-## 配置
-
-默认配置文件：
-
-```text
-~/.chat2local/config.yaml
-```
-
-完整示例见 [`config.example.yaml`](https://github.com/mmc-cloud/Chat2Local/blob/master/config.example.yaml)。
-
-一个最小的 Hub / Agent 配置示例：
-
-```yaml
-hub:
-  device_id: hub
-  host: 127.0.0.1
-  port: 8765
-  token_file: ~/.chat2local/hub.token
-
-agent:
-  device_id: desktop
-  hub_url: wss://hub.example.com/device/ws
-  token_file: ~/.chat2local/hub.token
-  proxy: system
-```
-
-`security.allowed_roots` 用来限制本机可选择的 workspace 范围。默认值 `[]` 不代表开放整个文件系统，而是只授权启动时的默认 workspace。
-
-CLI 参数只覆盖当前启动，不会自动写回 `config.yaml`。Windows Desktop 的 Settings 可以编辑持久化配置。
-
-### 进阶配置
-
-Chat2Local 还支持：
-
-- Agent → Hub 使用系统代理、直连或显式 HTTP / HTTPS / SOCKS4 / SOCKS5 代理
-- Standalone / Hub MCP HTTP endpoint 启用 OAuth Resource Server 模式
-- 当前 OAuth provider 支持 WorkOS AuthKit
-
-Core / CLI 使用 SOCKS 时需要额外安装 `python-socks[asyncio]`；Windows Desktop portable 已内置该依赖。
-
-## 安全模型
-
-Chat2Local 提供明确的应用级访问边界，但它不是 OS sandbox。
-
-- 文件工具始终限制在当前 workspace 内
-- workspace 必须位于本机允许的 `security.allowed_roots` 内
-- 阻止通过 `..`、workspace 外绝对路径、symlink / junction 逃逸
-- `exec_command` 仍拥有 Chat2Local 当前 OS 用户的权限
-- Agent shared token 只保护 Hub ↔ Agent 连接
-- 公网 MCP endpoint 应使用 HTTPS，并配置 OAuth 或可信的外部访问控制
-- 日志不会记录 token、完整认证 payload 或 Tool 参数内容
-
-如果需要更强隔离，应配合独立 OS 用户、容器、虚拟机或其他系统级机制使用。
-
-## Windows Desktop
-
-Desktop GUI 当前提供：
-
-- Core 状态和 Standalone / Hub / Agent 启停
-- workspace 选择
-- Hub 在线设备列表
-- `config.yaml` 设置编辑
-- Core 日志查看
-- Windows 系统托盘
-- 登录启动与静默启动
-- Core 自动启动
-- 简体中文 / English
-- single-instance
-
-关闭窗口默认隐藏到系统托盘；退出 Desktop 不会自动停止正在运行的 Core。
-
-Desktop 的开发与打包说明见 [`gui/pywebview/README.md`](https://github.com/mmc-cloud/Chat2Local/blob/master/gui/pywebview/README.md)。
-
-## 从源码运行与构建
-
-如果你希望直接从仓库运行、测试或修改 Chat2Local，克隆仓库后：
-
-```powershell
-uv sync
-uv run pytest
-```
-
-构建 Windows portable：
-
-```powershell
-uv sync --group pywebview-gui --group desktop-build
-uv run --group pywebview-gui --group desktop-build python scripts/build_windows.py
-```
-
-输出目录：
-
-```text
-dist/windows/Chat2Local/
-```
-
-## License
-
-Chat2Local 使用 [MIT License](https://github.com/mmc-cloud/Chat2Local/blob/master/LICENSE)。
+上游贡献：[PR #1：通过现有能力接口预览工作区图片](https://github.com/mmc-cloud/Chat2Local/pull/1)。该草稿 PR 只包含有界图片预览，完整附件和传输功能保留在 Plus 分支。

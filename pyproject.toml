@@ -1,10 +1,11 @@
 [project]
-name = "chat2local"
-version = "0.3.0"
+name = "chat2local-plus"
+version = "0.3.0.post1"
 description = "A lightweight local agent that lets ChatGPT securely operate local files and processes through MCP."
 readme = "README.md"
 authors = [
-    { name = "mmc-cloud" }
+    { name = "mmc-cloud" },
+    { name = "renji1hao8" }
 ]
 license = "MIT"
 license-files = ["LICENSE"]
@@ -30,12 +31,13 @@ dependencies = [
 ]
 
 [project.scripts]
-chat2local = "chat2local.main:main"
+c2l-plus = "chat2local.main:main"
+chat2local-plus = "chat2local.main:main"
 
 [project.urls]
-Homepage = "https://github.com/mmc-cloud/Chat2Local"
-Repository = "https://github.com/mmc-cloud/Chat2Local"
-Issues = "https://github.com/mmc-cloud/Chat2Local/issues"
+Homepage = "https://github.com/renji1hao8/Chat2Local"
+Repository = "https://github.com/renji1hao8/Chat2Local"
+Issues = "https://github.com/renji1hao8/Chat2Local/issues"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
@@ -44,9 +46,15 @@ build-backend = "uv_build"
 # uv_build includes package data under src/chat2local automatically, including
 # management/static (the compiled shared React UI). No frontend build at install time.
 
+[tool.uv.build-backend]
+module-name = "chat2local"
+module-root = "src"
+source-include = ["docs/*.md", "tests/*.py", "tests/*.m", "CHANGELOG.md"]
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "pillow>=12.3.0",
 ]
 pywebview-gui = [
     "pillow>=12.3.0",
